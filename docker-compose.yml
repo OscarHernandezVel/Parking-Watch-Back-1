@@ -1,0 +1,81 @@
+# =============================================================================
+# Entorno local del backend (equivalente a Render): PostGIS como Render Postgres y una carpeta
+# local como disco persistente /data.
+#
+#   docker compose up -d                       -> PostGIS (para correr el backend desde el IDE)
+#   docker compose --profile app up -d --build -> + backend en http://localhost:8080
+#   docker compose --profile demo up -d        -> + Edge simulado (imagen del repositorio
+#                                                 cupo-edge: ./mvnw package jib:dockerBuild)
+# =============================================================================
+name: cupo
+
+services:
+  postgis:
+    image: postgis/postgis:17-3.5
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cupo
+      POSTGRES_USER: ${DATABASE_USERNAME:-cupo}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Defina DATABASE_PASSWORD en .env}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgis-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d cupo"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: .
+    image: cupo/backend:local
+    profiles: ["app", "demo"]
+    restart: unless-stopped
+    depends_on:
+      postgis:
+        condition: service_healthy
+    environment:
+      # Mismo formato que entrega Render Postgres.
+      DATABASE_URL: postgresql://${DATABASE_USERNAME:-cupo}:${DATABASE_PASSWORD}@postgis:5432/cupo
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET en .env}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      EDGE_DEVICE_TOKENS: CAM-MAQ-01=${DEVICE_TOKEN:?Defina DEVICE_TOKEN en .env}
+      STORAGE_PATH: /data
+      ADMIN_MFA_REQUIRED: ${ADMIN_MFA_REQUIRED:-true}
+      BOOTSTRAP_ENABLED: "true"
+      BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-admin}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?Defina BOOTSTRAP_ADMIN_PASSWORD en .env}
+      BOOTSTRAP_ADMIN_TOTP_SECRET: ${BOOTSTRAP_ADMIN_TOTP_SECRET:-}
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - cupo-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+
+  # Edge en modo simulación: la maqueta completa sin cámara ni Raspberry Pi.
+  edge:
+    image: cupo/edge:local
+    profiles: ["demo"]
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      AGENT_MODE: SIMULATION
+      CAMERA_ID: CAM-MAQ-01
+      BACKEND_URL: http://backend:8080
+      DEVICE_TOKEN: ${DEVICE_TOKEN}
+      DATA_DIR: /tmp/edge-data
+      HEALTH_PORT: "8090"
+    ports:
+      - "127.0.0.1:8090:8090"
+
+volumes:
+  postgis-data:
+  cupo-data:

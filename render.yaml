@@ -1,0 +1,55 @@
+# Blueprint de Render (infraestructura como código): Web Service con Docker, Render Postgres con
+# PostGIS (activado por la migración V1 de Flyway), disco persistente en /data, verificación de
+# salud y variables de entorno. Región Virginia, la más cercana a Colombia.
+#
+# Planes de pago siempre encendidos (RNF-5.1): el plan gratuito suspende el servicio tras 15
+# minutos sin tráfico y su base de datos vence a los 30 días. Por usar disco, una sola instancia.
+services:
+  - type: web
+    name: cupo-backend
+    runtime: docker
+    region: virginia
+    plan: starter
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # El despliegue lo dispara la integración continua solo si las pruebas pasan (deploy hook).
+    autoDeploy: false
+    healthCheckPath: /actuator/health
+    numInstances: 1
+    disk:
+      name: cupo-data
+      mountPath: /data
+      sizeGB: 10
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cupo-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ALLOWED_ORIGIN
+        sync: false # p. ej. https://app.cupo-transito.co (dominio de Vercel)
+      - key: EDGE_DEVICE_TOKENS
+        sync: false # CAM-MAQ-01=pwd_... (token de cada Edge)
+      - key: STORAGE_PATH
+        value: /data
+      - key: JWT_TTL
+        value: 30m
+      - key: ADMIN_MFA_REQUIRED
+        value: "true"
+      - key: BOOTSTRAP_ENABLED
+        value: "true"
+      - key: BOOTSTRAP_ADMIN_USERNAME
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+
+databases:
+  - name: cupo-db
+    databaseName: cupo
+    user: cupo
+    region: virginia
+    plan: basic-256mb
+    postgresMajorVersion: "17"
+    ipAllowList: [] # solo red privada de Render

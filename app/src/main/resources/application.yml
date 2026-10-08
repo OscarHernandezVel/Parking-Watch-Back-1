@@ -1,0 +1,114 @@
+# Configuración del backend. Todo valor por entorno llega por variables de entorno de Render
+# (RNF-11.2): DATABASE_URL, JWT_SECRET, CORS_ALLOWED_ORIGIN, EDGE_DEVICE_TOKENS y STORAGE_PATH.
+spring:
+  application:
+    name: cupo-backend
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    # Render entrega DATABASE_URL como postgresql://usuario:clave@host/base; RenderDatabaseUrl la
+    # convierte a JDBC. También acepta una URL jdbc:postgresql://... con DATABASE_USERNAME/PASSWORD.
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/cupo}
+    username: ${DATABASE_USERNAME:cupo}
+    password: ${DATABASE_PASSWORD:cupo}
+    hikari:
+      maximum-pool-size: ${DATABASE_POOL_SIZE:10}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+  servlet:
+    multipart:
+      enabled: true
+      # Tres fotos de evidencia por reporte o un modelo ONNX (subido por el administrador).
+      max-file-size: ${MAX_UPLOAD_SIZE:200MB}
+      max-request-size: ${MAX_UPLOAD_SIZE:200MB}
+      file-size-threshold: 1MB
+
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+  forward-headers-strategy: framework
+  max-http-request-header-size: 16KB
+  tomcat:
+    max-swallow-size: 2MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+parking:
+  security:
+    jwt-secret: ${JWT_SECRET}
+    # JWT de corta duración (RNF-4.1); la página lo renueva antes de vencer.
+    jwt-ttl: ${JWT_TTL:30m}
+    cors-origins: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
+    admin-mfa-required: ${ADMIN_MFA_REQUIRED:true}
+    login-max-attempts: ${LOGIN_MAX_ATTEMPTS:5}
+    login-lock-duration: ${LOGIN_LOCK_DURATION:15m}
+  storage:
+    path: ${STORAGE_PATH:./data}
+  devices:
+    tokens: ${EDGE_DEVICE_TOKENS:}
+  rules:
+    min-detection-confidence: ${MIN_DETECTION_CONFIDENCE:0.50}
+    heartbeat-timeout: ${HEARTBEAT_TIMEOUT:30s}
+  retention:
+    dismissed-report-days: ${RETENTION_DAYS:30}
+  learning:
+    retraining-sample-threshold: ${RETRAINING_SAMPLE_THRESHOLD:200}
+    dismissal-rate-threshold: ${DISMISSAL_RATE_THRESHOLD:0.05}
+    dismissal-sample-size: 100
+    dismissal-minimum-sample: 20
+  realtime:
+    max-message-bytes: 524288
+    send-time-limit: 10s
+    send-buffer-bytes: 2097152
+  edge:
+    heartbeat-interval-seconds: 5
+    detection-sample-interval-ms: 200
+    analytics-interval-seconds: 5
+    config-poll-interval-seconds: 60
+    video:
+      width: 960
+      height: 540
+      fps: ${LIVE_VIDEO_FPS:6}
+      jpeg-quality: 0.7
+  bootstrap:
+    enabled: ${BOOTSTRAP_ENABLED:false}
+    admin-username: ${BOOTSTRAP_ADMIN_USERNAME:}
+    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+    admin-totp-secret: ${BOOTSTRAP_ADMIN_TOTP_SECRET:}
+
+cupo:
+  # Versión SemVer del backend y del contrato (RNF-11.1), tomada del POM al compilar.
+  version: '@project.version@'

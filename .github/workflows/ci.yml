@@ -1,0 +1,92 @@
+# Integración continua de cupo-backend (RNF-10.2): en cada pull request y en main se compila, se
+# verifica el formato y el estilo, se ejecuta el análisis estático, las pruebas unitarias y de
+# integración (Testcontainers con PostGIS), la cobertura (>= 80 %), la revisión de vulnerabilidades
+# de dependencias y las pruebas de contrato (OpenAPI y AsyncAPI). No se integra un cambio con
+# pruebas fallidas o vulnerabilidades críticas.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Calidad y pruebas (Java 21)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Compilar, analizar y probar
+        run: ./mvnw -B -ntp verify
+      - name: Contrato OpenAPI al día (docs/openapi.json)
+        run: |
+          jq -S 'del(.servers)' docs/openapi.json > /tmp/committed.json
+          jq -S 'del(.servers)' app/target/openapi.json > /tmp/generated.json
+          diff -u /tmp/committed.json /tmp/generated.json || {
+            echo "::error::La API cambió: copie app/target/openapi.json en docs/openapi.json"; exit 1; }
+      - name: Contrato AsyncAPI válido
+        run: npx --yes @asyncapi/cli@2 validate docs/asyncapi.yaml
+      - name: Publicar contratos como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: contracts
+          path: |
+            docs/openapi.json
+            docs/asyncapi.yaml
+      - name: Reportes de cobertura y pruebas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            */target/site/jacoco/
+            */target/surefire-reports/
+            */target/failsafe-reports/
+
+  dependencies:
+    name: Vulnerabilidades de dependencias (OWASP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: OWASP Dependency-Check (falla con CVSS >= 9)
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: ./mvnw -B -ntp -Psecurity -DskipTests -Dquality.skip=true verify
+
+  sonar:
+    name: Análisis SonarQube
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ vars.ENABLE_SONAR == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Análisis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: ./mvnw -B -ntp verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=cupo-backend

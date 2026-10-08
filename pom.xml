@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Repositorio cupo-backend (Módulo 2: Backend en Render).
+    - contracts : paquete cupo-contracts con los objetos de mensaje entre el Edge y el Backend.
+                  Se publica en GitHub Packages en cada versión y lo consume el repositorio cupo-edge.
+    - app       : servicio Spring Boot 3 (API REST, WebSocket STOMP, reglas, reportes, exportaciones,
+                  registro de modelos y migraciones Flyway). Se despliega en Render con Docker.
+  Versionado SemVer (RNF-11.1): la versión de este POM es la del contrato publicado.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.5.16</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.parkingwatch</groupId>
+  <artifactId>cupo-backend-parent</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>Cupo :: Backend</name>
+  <description>Reconocimiento de parqueo en zonas no autorizadas mediante cámaras y machine learning</description>
+
+  <modules>
+    <module>contracts</module>
+    <module>app</module>
+  </modules>
+
+  <properties>
+    <java.version>21</java.version>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <quality.config.dir>${maven.multiModuleProjectDirectory}/quality/config</quality.config.dir>
+
+    <!-- Repositorio de GitHub donde se publica cupo-contracts (GitHub Packages) -->
+    <github.repository>cupo-transito/cupo-backend</github.repository>
+
+    <!-- Librerías -->
+    <!-- Byte Buddy reciente: Mockito e Hibernate en JDK 21+ -->
+    <byte-buddy.version>1.18.14</byte-buddy.version>
+    <springdoc.version>2.8.17</springdoc.version>
+    <openpdf.version>2.2.5</openpdf.version>
+    <poi.version>5.5.1</poi.version>
+    <logstash-logback-encoder.version>8.1</logstash-logback-encoder.version>
+    <archunit.version>1.4.1</archunit.version>
+
+    <!-- Herramientas de calidad (Módulo No Funcional 4) -->
+    <jacoco.version>0.8.15</jacoco.version>
+    <jacoco.minimum.line.coverage>0.80</jacoco.minimum.line.coverage>
+    <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
+    <checkstyle.version>10.26.1</checkstyle.version>
+    <pmd-plugin.version>3.28.0</pmd-plugin.version>
+    <spotbugs-plugin.version>4.9.8.5</spotbugs-plugin.version>
+    <spotless-plugin.version>2.46.1</spotless-plugin.version>
+    <google-java-format.version>1.28.0</google-java-format.version>
+    <dependency-check.version>12.1.9</dependency-check.version>
+
+    <!-- -Dquality.skip=true salta el análisis estático en ciclos rápidos de desarrollo -->
+    <quality.skip>false</quality.skip>
+    <checkstyle.skip>${quality.skip}</checkstyle.skip>
+    <pmd.skip>${quality.skip}</pmd.skip>
+    <cpd.skip>${quality.skip}</cpd.skip>
+    <spotbugs.skip>${quality.skip}</spotbugs.skip>
+    <spotless.check.skip>${quality.skip}</spotless.check.skip>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.parkingwatch</groupId>
+        <artifactId>cupo-contracts</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>${springdoc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.librepdf</groupId>
+        <artifactId>openpdf</artifactId>
+        <version>${openpdf.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.poi</groupId>
+        <artifactId>poi-ooxml</artifactId>
+        <version>${poi.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.logstash.logback</groupId>
+        <artifactId>logstash-logback-encoder</artifactId>
+        <version>${logstash-logback-encoder.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.tngtech.archunit</groupId>
+        <artifactId>archunit-junit5</artifactId>
+        <version>${archunit.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <!-- El paquete de contratos se publica en GitHub Packages (RNF-11.1) -->
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <name>GitHub Packages</name>
+      <url>https://maven.pkg.github.com/${github.repository}</url>
+    </repository>
+  </distributionManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <configuration>
+            <!-- Mockito como agente explícito (JDK 21+) y Byte Buddy en modo experimental para JDK recientes -->
+            <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar} -Xshare:off -Dnet.bytebuddy.experimental=true -Dfile.encoding=UTF-8 -Djava.awt.headless=true</argLine>
+            <includes>
+              <include>**/*Test.java</include>
+            </includes>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <configuration>
+            <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar} -Xshare:off -Dnet.bytebuddy.experimental=true -Dfile.encoding=UTF-8 -Djava.awt.headless=true</argLine>
+            <includes>
+              <include>**/*IT.java</include>
+            </includes>
+          </configuration>
+          <executions>
+            <execution>
+              <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>${jacoco.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>${checkstyle-plugin.version}</version>
+          <dependencies>
+            <dependency>
+              <groupId>com.puppycrawl.tools</groupId>
+              <artifactId>checkstyle</artifactId>
+              <version>${checkstyle.version}</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <configLocation>${quality.config.dir}/checkstyle.xml</configLocation>
+            <consoleOutput>true</consoleOutput>
+            <violationSeverity>warning</violationSeverity>
+            <includeTestSourceDirectory>false</includeTestSourceDirectory>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-pmd-plugin</artifactId>
+          <version>${pmd-plugin.version}</version>
+          <configuration>
+            <rulesets>
+              <ruleset>${quality.config.dir}/pmd-ruleset.xml</ruleset>
+            </rulesets>
+            <targetJdk>${java.version}</targetJdk>
+            <printFailingErrors>true</printFailingErrors>
+            <linkXRef>false</linkXRef>
+            <includeTests>false</includeTests>
+            <minimumTokens>100</minimumTokens>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>${spotbugs-plugin.version}</version>
+          <configuration>
+            <effort>Max</effort>
+            <threshold>Medium</threshold>
+            <excludeFilterFile>${quality.config.dir}/spotbugs-exclude.xml</excludeFilterFile>
+            <includeTests>false</includeTests>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>com.diffplug.spotless</groupId>
+          <artifactId>spotless-maven-plugin</artifactId>
+          <version>${spotless-plugin.version}</version>
+          <configuration>
+            <!-- Finales de línea LF en todos los sistemas (Windows, Linux de CI y contenedores) -->
+            <lineEndings>UNIX</lineEndings>
+            <java>
+              <googleJavaFormat>
+                <version>${google-java-format.version}</version>
+                <style>GOOGLE</style>
+              </googleJavaFormat>
+              <removeUnusedImports/>
+            </java>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.owasp</groupId>
+          <artifactId>dependency-check-maven</artifactId>
+          <version>${dependency-check.version}</version>
+          <configuration>
+            <failBuildOnCVSS>9</failBuildOnCVSS>
+            <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+            <suppressionFiles>
+              <suppressionFile>${quality.config.dir}/dependency-check-suppressions.xml</suppressionFile>
+            </suppressionFiles>
+            <skipTestScope>true</skipTestScope>
+            <formats>
+              <format>HTML</format>
+              <format>JSON</format>
+            </formats>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <!-- Plugins aplicados a todos los módulos: el control de calidad corre con "mvn verify" -->
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-environment</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[21,)</version>
+                </requireJavaVersion>
+                <requireMavenVersion>
+                  <version>[3.9,)</version>
+                </requireMavenVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>agent-paths</id>
+            <goals>
+              <goal>properties</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>coverage-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>${jacoco.minimum.line.coverage}</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>spotless-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>checkstyle-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>pmd-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+              <goal>cpd-check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>spotbugs-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- Revisión de vulnerabilidades de dependencias (RNF-10.2): mvn verify -Psecurity -->
+    <profile>
+      <id>security</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.owasp</groupId>
+            <artifactId>dependency-check-maven</artifactId>
+            <inherited>false</inherited>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>aggregate</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

@@ -1,0 +1,20 @@
+# Compilación Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# Entorno local y secretos
+.env
+*.log
+
+
+
+# Disco persistente local
+data/

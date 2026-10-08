@@ -1,0 +1,72 @@
+# Entrega continua de cupo-backend: al integrar en main (y con la CI aprobada) se publica el
+# contrato (paquete cupo-contracts en GitHub Packages, OpenAPI y AsyncAPI), se despliega en Render
+# y se ejecuta una prueba de humo (/actuator/health e inicio de sesión). Una etiqueta vX.Y.Z publica
+# la versión SemVer del contrato que declaran el Frontend y el Edge (RNF-11.1).
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  publish-contracts:
+    name: Publicar cupo-contracts
+    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          server-id: github
+      - name: Versión de la etiqueta
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: ./mvnw -B -ntp versions:set -DnewVersion="${GITHUB_REF_NAME#v}" -DgenerateBackupPoms=false
+      - name: Publicar en GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./mvnw -B -ntp -pl contracts -am deploy -DskipTests -Dquality.skip=true -Dgithub.repository=${{ github.repository }}
+      - name: Adjuntar OpenAPI y AsyncAPI a la versión
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "$GITHUB_REF_NAME" docs/openapi.json docs/asyncapi.yaml --generate-notes
+
+  deploy:
+    name: Desplegar en Render y prueba de humo
+    needs: publish-contracts
+    if: ${{ github.event_name == 'workflow_run' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Disparar el despliegue (deploy hook de Render)
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+      - name: Esperar la nueva versión (/actuator/health)
+        env:
+          API_URL: ${{ vars.API_URL }}
+        run: |
+          sleep 60
+          for _ in $(seq 1 40); do
+            curl -fsS "$API_URL/actuator/health" | grep -q '"UP"' && exit 0
+            sleep 15
+          done
+          echo "::error::El backend no respondió UP"; exit 1
+      - name: Prueba de humo del inicio de sesión
+        env:
+          API_URL: ${{ vars.API_URL }}
+          SMOKE_USERNAME: ${{ secrets.SMOKE_USERNAME }}
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+        run: |
+          body=$(jq -n --arg u "$SMOKE_USERNAME" --arg p "$SMOKE_PASSWORD" '{username:$u,password:$p}')
+          token=$(curl -fsS -X POST "$API_URL/api/v1/auth/login" -H 'Content-Type: application/json' -d "$body" | jq -r .accessToken)
+          curl -fsS "$API_URL/api/v1/cameras" -H "Authorization: Bearer $token" | jq -e 'length >= 1'

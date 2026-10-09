@@ -27,8 +27,8 @@ Configurarlas para **Production** y **Preview** en Settings → Environment Vari
 
 | Variable | Valor |
 |---|---|
-| `VITE_API_URL` | `https://<dominio-real-del-backend>` |
-| `VITE_WS_URL` | `wss://<dominio-real-del-backend>/ws` |
+| `VITE_BACKEND_API_URL` | `https://cupo-backend-so90.onrender.com` |
+| `VITE_BACKEND_WS_URL` | `wss://cupo-backend-so90.onrender.com/ws` |
 
 Ejemplo si Render asigna el nombre previsto: `https://cupo-backend.onrender.com` y `wss://cupo-backend.onrender.com/ws`. El CSP de `vercel.json` permite conexiones al subdominio `*.onrender.com`; si se usa un dominio propio de API, agregar su origen HTTPS y WSS allí y volver a desplegar.
 

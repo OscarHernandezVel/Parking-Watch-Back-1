@@ -1,7 +1,7 @@
 # cupo-backend
 
 Backend del sistema de reconocimiento de parqueo en zonas no autorizadas (Módulo 2 del
-documento v6): Java 21 con Spring Boot 3, desplegado en **Render** con Docker, Render Postgres +
+documento v6): Java 21 con Spring Boot 3, desplegable en **Coolify** con Docker, PostgreSQL +
 PostGIS y disco persistente en `/data`.
 
 | Módulo | Artefacto | Contenido |
@@ -26,17 +26,17 @@ bash scripts/system-test.sh              # prueba de sistema con el Edge simulad
 Las pruebas de integración usan Testcontainers (Docker debe estar en ejecución) y prueban el
 WebSocket con un servidor real (`RealtimeIT`).
 
-## Variables de entorno (Render)
+## Variables de entorno (producción)
 
 | Variable | Uso |
 |---|---|
-| `DATABASE_URL` | Cadena de Render Postgres (`postgresql://...`, se convierte a JDBC) o URL JDBC. |
+| `DATABASE_URL` | URL JDBC del PostgreSQL/PostGIS en la red privada, por ejemplo `jdbc:postgresql://postgis:5432/cupo`. |
 | `JWT_SECRET`, `JWT_TTL` | Firma y duración del JWT (30 min por defecto). |
-| `CORS_ALLOWED_ORIGIN` | Dominio de la página en Vercel (también origen permitido del WebSocket `/ws`). |
+| `CORS_ALLOWED_ORIGIN` | Origen HTTPS exacto del frontend (también origen permitido del WebSocket `/ws`). |
 | `EDGE_DEVICE_TOKENS` | `CAM-MAQ-01=pwd_...,CAM-02=pwd_...`; solo se guarda su SHA-256. |
 | `STORAGE_PATH` | Disco persistente (`/data`). |
 | `ADMIN_MFA_REQUIRED`, `LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCK_DURATION` | Segundo factor y límite de intentos. |
 | `BOOTSTRAP_*` | Datos de la maqueta y administrador inicial (y su secreto TOTP opcional). |
 
-Despliegue: [`render.yaml`](render.yaml) (Blueprint) y [`Dockerfile`](Dockerfile); ver
-[`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md).
+Despliegue: [`Dockerfile`](Dockerfile); ver [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md).
+El archivo [`render.yaml`](render.yaml) conserva la configuración anterior de Render.

@@ -1,97 +1,102 @@
-# Despliegue de Parking Watch: Vercel + Render
+# Despliegue autohospedado de Parking Watch con Coolify
 
-Esta guía corresponde a los repositorios públicos:
+Esta guía usa software de despliegue de código abierto en un servidor propio. El dominio puede comprarse en Hostinger; se requiere además un VPS Linux (o servidor Linux propio) con acceso SSH, Docker y una IP pública. Coolify administra los contenedores, dominios, TLS y despliegues desde Git. La aplicación y la base de datos siguen corriendo en infraestructura que ustedes operan.
 
-- Frontend: [`Parking-Watch-Front-End`](https://github.com/danielchauxgcampusucceduco/Parking-Watch-Front-End), rama `ChauxBranch`.
-- Backend: [`Parking-Watch-Back-1`](https://github.com/OscarHernandezVel/Parking-Watch-Back-1), rama `main`.
-- Edge: [`Parking_Watch_Edge_2`](https://github.com/OscarHernandezVel/Parking_Watch_Edge_2), rama `edgeMain`.
+## Arquitectura
 
-Render aloja API y PostgreSQL; Vercel sirve la SPA; Edge se ejecuta en una Raspberry Pi y se conecta saliendo a la API por HTTPS/WSS. No se despliega el Edge en Render. No se requieren servicios ni llaves de AWS.
+- `app.<dominio>`: frontend React/Vite, construido desde `Parking-Watch-Front-End/Dockerfile`.
+- `api.<dominio>`: API Spring Boot, construida desde `Parking-Watch-Back-1/Dockerfile`.
+- PostgreSQL/PostGIS: imagen `postgis/postgis:17-3.5`, en la red privada de Coolify y con volumen persistente.
+- Edge: proceso ARM64 ejecutado en cada Raspberry Pi junto a su cámara; se conecta hacia `api.<dominio>` por HTTPS/WSS.
 
-## 1. Orden de publicación
+Railway no es necesario para esta opción. Si se usa Railway para Postgres, ya sería una plataforma administrada externa y se debe verificar que permita la extensión PostGIS requerida por las migraciones.
 
-1. En Render, crear el Blueprint desde el repositorio `Parking-Watch-Back-1`, archivo `render.yaml`, rama `main`, región Virginia. El Blueprint crea el Web Service Docker, PostgreSQL y disco persistente.
-2. Esperar que Render asigne el dominio del Web Service. El nombre configurado por defecto es `cupo-backend`; si Render asigna otro, usar el dominio real en los pasos siguientes.
-3. En Vercel, importar `Parking-Watch-Front-End`, seleccionar `ChauxBranch` como Production Branch, framework Vite y directorio raíz `.`. Los comandos y salida están definidos por `vercel.json`.
-4. En Vercel configurar las variables de la sección 3; luego desplegar. Copiar el dominio de producción de Vercel.
-5. En Render establecer `CORS_ALLOWED_ORIGIN` con ese dominio exacto (`https://...vercel.app`), sin `/` final. Reiniciar/desplegar el backend.
-6. Verificar `https://<dominio-render>/actuator/health` y el inicio de sesión en la aplicación.
+## 1. Preparar servidor y dominio
 
-Los repos ya son públicos en GitHub. Los cambios locales deben publicarse en sus ramas indicadas para que Render/Vercel reciban esta configuración. No subir archivos `.env`, tokens, contraseñas, secretos TOTP ni llaves privadas.
+1. Crear un VPS Linux con al menos 2 vCPU, 4 GB RAM y 40 GB de disco para alojar Coolify, API, frontend y PostGIS; el tamaño debe crecer con la carga y almacenamiento de evidencias. Coolify por sí solo requiere 2 CPU, 2 GB RAM y 10 GB de disco.
+2. Instalar Coolify siguiendo la [guía oficial de autohospedaje](https://coolify.io/docs/start-with-self-hosted). Conectar el VPS en Servers y comprobar que el proxy está iniciado.
+3. En DNS del dominio, crear `A` para `app` y `api` con la IP pública del VPS. Si también se usará el dominio raíz, crear su `A` correspondiente. No apuntar el dominio a la IP de Coolify si la IP asignada es distinta de la del servidor de aplicaciones.
+4. Abrir en el firewall solo SSH restringido a administradores y los puertos públicos 80/443. No abrir el puerto 5432 de Postgres ni el 8090 del Edge.
 
-Frontend desplegado en Vercel: <https://parking-watch-front-end.vercel.app/> (Production, rama `ChauxBranch`).
+## 2. Crear PostgreSQL/PostGIS
 
-## 2. Variables de Vercel
+En Coolify, crear un recurso de tipo **Service / Docker Compose** en el mismo servidor y red que el backend. Usar la imagen `postgis/postgis:17-3.5`, puerto interno `5432`, base y usuario dedicados, contraseña aleatoria y almacenamiento persistente en `/var/lib/postgresql/data`. No mapear el puerto a Internet. Configurar y probar backups fuera del VPS; un volumen por sí solo no es una copia de seguridad.
 
-Configurarlas para **Production** y **Preview** en Settings → Environment Variables. Son valores públicos incluidos en el bundle del navegador; nunca poner credenciales aquí.
+Anotar el nombre interno del contenedor/servicio y la base de datos para construir la conexión que utilizará el backend. Si el recurso usa la base `cupo`, el usuario `cupo` y contraseña `CAMBIAR`, una forma JDBC válida en la red privada es:
+
+```text
+jdbc:postgresql://<host-interno-postgres>:5432/cupo
+```
+
+## 3. Desplegar el backend
+
+En Coolify, crear Application desde GitHub con el repositorio `OscarHernandezVel/Parking-Watch-Back-1`, rama `main`, build pack Dockerfile y ruta `Dockerfile`. Asignar `https://api.<dominio>` y puerto interno `8080`. Habilitar health check en `/actuator/health` si la versión de Coolify expone ese ajuste.
+
+Configurar estas variables en el recurso Backend. Mantener `DATABASE_URL` en formato JDBC para evitar exponer la base fuera de la red privada:
 
 | Variable | Valor |
 |---|---|
-| `VITE_API_URL` | `https://<dominio-real-del-backend>` |
-| `VITE_WS_URL` | `wss://<dominio-real-del-backend>/ws` |
+| `DATABASE_URL` | `jdbc:postgresql://<host-interno-postgres>:5432/cupo` |
+| `DATABASE_USERNAME` | Usuario configurado en PostGIS |
+| `DATABASE_PASSWORD` | Contraseña larga y aleatoria |
+| `JWT_SECRET` | Secreto aleatorio fuerte, único y privado |
+| `CORS_ALLOWED_ORIGIN` | `https://app.<dominio>` sin barra final |
+| `EDGE_DEVICE_TOKENS` | `CAM-MAQ-01=pwd_<token-aleatorio-largo>` |
+| `STORAGE_PATH` | `/data` |
+| `ADMIN_MFA_REQUIRED` | `true` |
+| `BOOTSTRAP_ENABLED` | `true` para el primer arranque; luego cambiar a `false` |
+| `BOOTSTRAP_ADMIN_USERNAME` | Nombre único del administrador inicial |
+| `BOOTSTRAP_ADMIN_PASSWORD` | Contraseña aleatoria, guardar en gestor de contraseñas |
+| `BOOTSTRAP_ADMIN_TOTP_SECRET` | Opcional; dejar vacío si se configura MFA tras iniciar sesión |
 
-Ejemplo si Render asigna el nombre previsto: `https://cupo-backend.onrender.com` y `wss://cupo-backend.onrender.com/ws`. El CSP de `vercel.json` permite conexiones al subdominio `*.onrender.com`; si se usa un dominio propio de API, agregar su origen HTTPS y WSS allí y volver a desplegar.
+Agregar un volumen persistente para `/data`, donde el backend guarda archivos de evidencia. Tras el primer inicio y la creación de la cuenta administrativa, cambiar `BOOTSTRAP_ENABLED=false` y redeplegar. Nunca guardar estos secretos en Git ni en archivos `.env` versionados.
 
-## 3. Variables de Render
+Verificar `https://api.<dominio>/actuator/health` antes de desplegar el frontend.
 
-El Blueprint genera `JWT_SECRET`, conecta `DATABASE_URL` a PostgreSQL, y configura `STORAGE_PATH=/data`. Completar las variables marcadas `sync: false` desde el panel del servicio:
+## 4. Desplegar el frontend
 
-| Variable | Qué configurar |
+Crear Application desde `danielchauxgcampusucceduco/Parking-Watch-Front-End`, rama `ChauxBranch`, build pack Dockerfile y ruta `Dockerfile`. Asignar `https://app.<dominio>` y puerto interno `80`.
+
+En **Build Arguments** configurar:
+
+| Argumento | Valor |
 |---|---|
-| `CORS_ALLOWED_ORIGIN` | `https://parking-watch-front-end.vercel.app` (sin barra final). |
-| `EDGE_DEVICE_TOKENS` | `CAM-MAQ-01=pwd_<token-aleatorio-largo>`; el mismo token va en `DEVICE_TOKEN` del Edge. Genéralo con un gestor de secretos o `openssl rand -hex 32`, anteponiendo `pwd_`. |
-| `BOOTSTRAP_ADMIN_USERNAME` | Nombre único del administrador inicial. |
-| `BOOTSTRAP_ADMIN_PASSWORD` | Contraseña aleatoria, larga y única. Guardarla en un gestor de contraseñas. |
+| `VITE_API_URL` | `https://api.<dominio>` |
+| `VITE_WS_URL` | `wss://api.<dominio>/ws` |
 
-El Blueprint deja `BOOTSTRAP_ENABLED=true` y `ADMIN_MFA_REQUIRED=true`. Tras iniciar sesión, configurar el segundo factor. `BOOTSTRAP_ADMIN_TOTP_SECRET` solo se usa si se decide preconfigurar TOTP y se debe guardar como secreto.
+En las variables de ejecución del contenedor configurar:
 
-Render también espera el primer despliegue manual si `autoDeploy: false`. Más adelante el workflow `Release` puede dispararlo con `RENDER_DEPLOY_HOOK_URL` una vez que se configure CI.
+| Variable | Valor |
+|---|---|
+| `API_ORIGIN` | `https://api.<dominio>` |
+| `WS_ORIGIN` | `wss://api.<dominio>` |
 
-## 4. Secretos y variables de GitHub Actions
-
-Configurar en Settings → Secrets and variables → Actions del repositorio correspondiente:
-
-**Backend (`Parking-Watch-Back-1`)**
-
-- Secret `NVD_API_KEY`: llave gratuita del servicio NVD, requerida por el job de análisis de dependencias.
-- Secret `RENDER_DEPLOY_HOOK_URL`: deploy hook del servicio backend en Render.
-- Secret `SMOKE_USERNAME` y `SMOKE_PASSWORD`: cuenta de operador para la prueba de humo; no usar la cuenta de administrador.
-- Variable `API_URL`: URL HTTPS real del backend en Render, sin `/` final.
-
-**Edge (`Parking_Watch_Edge_2`)**
-
-- Secret `GH_PACKAGES_TOKEN`: token personal clásico de GitHub con permiso `read:packages`, emitido por quien tenga acceso al paquete `cupo-contracts` del repositorio Backend. Es necesario porque GitHub Packages requiere autenticación Maven entre repositorios. No reutilizar el token del dispositivo.
-
-El token debe ser de mínimo alcance y almacenarse solamente en GitHub Actions. No crear token si no se va a compilar Edge mediante Actions.
+Las URLs `VITE_*` se incorporan al bundle durante la compilación; al cambiarlas, volver a construir la imagen. El servidor Nginx del frontend sirve la SPA, cabeceras de seguridad y `/health`.
 
 ## 5. Edge en Raspberry Pi
 
-El proceso requiere Raspberry Pi OS de 64 bits y el hardware/dependencias indicadas por el proyecto. La rama `edgeMain` no contiene actualmente la carpeta `deploy/` ni los scripts `install.sh`/`update.sh` que menciona el workflow de Release; por eso esa publicación no puede instalarse siguiendo la guía antigua. Para la primera puesta en marcha, preparar el JAR ARM64 desde la Release una vez que exista, o compilarlo en la Raspberry con Java 21 y el perfil Maven del proyecto.
+El repositorio `OscarHernandezVel/Parking_Watch_Edge_2`, rama `edgeMain`, no se despliega en Coolify: ejecutar en Raspberry Pi OS de 64 bits junto a cada cámara. Instalar Java 21 y dependencias de cámara indicadas por el proyecto, compilar/publicar el artefacto ARM64 y configurar un servicio del sistema.
 
-Variables mínimas del proceso Edge:
+Variables mínimas del agente:
 
 ```dotenv
 CAMERA_ID=CAM-MAQ-01
-BACKEND_URL=https://<dominio-real-del-backend>
-DEVICE_TOKEN=pwd_<el-mismo-token-configurado-en-Render>
+BACKEND_URL=https://api.<dominio>
+DEVICE_TOKEN=pwd_<mismo-token-de-EDGE_DEVICE_TOKENS>
 AGENT_MODE=CAMERA
 HEALTH_PORT=8090
 ```
 
-El proceso también puede correr `AGENT_MODE=SIMULATION` cuando la configuración y fuente de video lo permitan. El puerto `8090` es local para salud/monitorización; no se expone públicamente. Configurar el proceso como servicio de sistema y proteger el archivo de entorno con permisos solo para el usuario del servicio.
+El puerto `8090` es solo para salud local y no se expone públicamente. Para más cámaras, registrar un `CAMERA_ID` y token independiente para cada equipo en `EDGE_DEVICE_TOKENS` y en su configuración local.
 
-## 6. Relación entre los tres repositorios
+## 6. Comprobación y operación
 
-- Backend publica REST bajo `/api/v1`, WebSocket navegador en `/ws` y WebSocket Edge en `/ws/edge`.
-- El navegador recibe URL REST y WSS desde las variables `VITE_*` de Vercel.
-- Edge recibe URL del backend y token de dispositivo mediante `BACKEND_URL` y `DEVICE_TOKEN`.
-- El contrato Maven `cupo-contracts` se publica desde el repositorio Backend. Edge consulta el paquete desde `OscarHernandezVel/Parking-Watch-Back-1`; para GitHub Actions necesita `GH_PACKAGES_TOKEN`.
-- El workflow de frontend sigue la rama `ChauxBranch`; los de backend y Edge siguen `main` y `edgeMain`, respectivamente.
+1. Confirmar que PostGIS inició y que las migraciones Flyway del backend finalizaron.
+2. Revisar `https://api.<dominio>/actuator/health`.
+3. Abrir `https://app.<dominio>`, iniciar sesión y comprobar que el navegador no muestra errores CORS o WebSocket.
+4. Iniciar Edge y verificar su conexión autenticada; revisar los logs del backend y del agente.
+5. Configurar backups de base y evidencias fuera del VPS, actualizaciones de seguridad, alertas de disco y restauraciones periódicas.
 
-## 7. Archivos de entorno
+## Nota de licencia
 
-- Front local: `Parking-Watch-Front-End/.env.example` → copiar a `.env.local`; mantener localhost para desarrollo local.
-- Backend local: `Parking-Watch-Back-1/.env.example` → copiar a `.env`; reemplazar todos los valores de ejemplo antes de ejecutar.
-- Edge: crear el archivo de entorno en la Raspberry a partir de las variables de esta guía. No commitearlo.
-
-Los archivos de ejemplo no son llaves reales. Los valores de producción se agregan en los paneles de Render/Vercel y en GitHub Secrets, no en los archivos versionados.
+Un repositorio público no tiene licencia Open Source automáticamente. Los propietarios deben elegir y añadir la licencia antes de declarar el sistema Open Source.

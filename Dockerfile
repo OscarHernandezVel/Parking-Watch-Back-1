@@ -1,7 +1,7 @@
-# Imagen del backend para Render (Web Service con Docker), en dos etapas:
+# Imagen del backend para Coolify/Render (servicio Docker), en dos etapas:
 #   1. Compila con Maven y JDK 21 (sin pruebas: ya corrieron en la integración continua).
 #   2. Ejecuta el jar con eclipse-temurin:21-jre como usuario sin privilegios.
-# Render construye esta imagen en cada integración en main (render.yaml).
+# Coolify construye esta imagen desde la rama main.
 
 FROM maven:3.9.11-eclipse-temurin-21 AS build
 WORKDIR /workspace
@@ -24,5 +24,5 @@ USER cupo
 ENV STORAGE_PATH=/data \
     JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -Djava.awt.headless=true"
 EXPOSE 8080
-# Render asigna el puerto en la variable PORT (por defecto 10000); Spring la lee en server.port.
+# Coolify enruta el dominio al puerto interno 8080.
 ENTRYPOINT ["java", "-jar", "/app/cupo-backend.jar"]

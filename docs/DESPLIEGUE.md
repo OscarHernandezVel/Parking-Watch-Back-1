@@ -19,6 +19,8 @@ Render aloja API y PostgreSQL; Vercel sirve la SPA; Edge se ejecuta en una Raspb
 
 Los repos ya son públicos en GitHub. Los cambios locales deben publicarse en sus ramas indicadas para que Render/Vercel reciban esta configuración. No subir archivos `.env`, tokens, contraseñas, secretos TOTP ni llaves privadas.
 
+Frontend desplegado en Vercel: <https://parking-watch-front-end.vercel.app/> (Production, rama `ChauxBranch`).
+
 ## 2. Variables de Vercel
 
 Configurarlas para **Production** y **Preview** en Settings → Environment Variables. Son valores públicos incluidos en el bundle del navegador; nunca poner credenciales aquí.
@@ -36,7 +38,7 @@ El Blueprint genera `JWT_SECRET`, conecta `DATABASE_URL` a PostgreSQL, y configu
 
 | Variable | Qué configurar |
 |---|---|
-| `CORS_ALLOWED_ORIGIN` | Dominio Vercel de producción, por ejemplo `https://<proyecto>.vercel.app` (sin barra final). |
+| `CORS_ALLOWED_ORIGIN` | `https://parking-watch-front-end.vercel.app` (sin barra final). |
 | `EDGE_DEVICE_TOKENS` | `CAM-MAQ-01=pwd_<token-aleatorio-largo>`; el mismo token va en `DEVICE_TOKEN` del Edge. Genéralo con un gestor de secretos o `openssl rand -hex 32`, anteponiendo `pwd_`. |
 | `BOOTSTRAP_ADMIN_USERNAME` | Nombre único del administrador inicial. |
 | `BOOTSTRAP_ADMIN_PASSWORD` | Contraseña aleatoria, larga y única. Guardarla en un gestor de contraseñas. |

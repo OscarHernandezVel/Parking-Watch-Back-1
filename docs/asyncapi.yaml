@@ -103,7 +103,7 @@ operations:
   sendHeartbeat: { action: send, channel: { $ref: '#/channels/edgeHeartbeat' }, summary: Señal de vida cada 5 s (sin conexión a los 30 s) }
   sendStatistics: { action: send, channel: { $ref: '#/channels/edgeStatistics' }, summary: Resumen por minuto }
   sendAlerts: { action: send, channel: { $ref: '#/channels/edgeAlerts' }, summary: Alerta de deriva }
-   receiveConfig: { action: receive, channel: { $ref: '#/channels/edgeConfig' }, summary: 'Cambios de zonas y de modelo, sin reiniciar' }
+  receiveConfig: { action: receive, channel: { $ref: '#/channels/edgeConfig' }, summary: 'Cambios de zonas y de modelo, sin reiniciar' }
   receiveEventResults: { action: receive, channel: { $ref: '#/channels/edgeEventResults' }, summary: Resultado por evento para limpiar el búfer local }
   watchVideo: { action: receive, channel: { $ref: '#/channels/cameraVideo' }, summary: Solo el fotograma más reciente si el navegador va retrasado }
   watchDetections: { action: receive, channel: { $ref: '#/channels/cameraDetections' } }

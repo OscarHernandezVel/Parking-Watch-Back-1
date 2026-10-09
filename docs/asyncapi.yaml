@@ -12,7 +12,7 @@ info:
     Render solo publica HTTP/HTTPS, por eso no se usan MQTT ni WebRTC.
 servers:
   production:
-    host: api.cupo-transito.co
+    host: cupo-backend.onrender.com
     protocol: wss
     description: Backend en Render (región Virginia)
   local:

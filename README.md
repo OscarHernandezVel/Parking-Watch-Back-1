@@ -39,4 +39,4 @@ WebSocket con un servidor real (`RealtimeIT`).
 | `BOOTSTRAP_*` | Datos de la maqueta y administrador inicial (y su secreto TOTP opcional). |
 
 Despliegue: [`render.yaml`](render.yaml) (Blueprint) y [`Dockerfile`](Dockerfile); ver
-`../docs/DESPLIEGUE.md`.
+[`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md).

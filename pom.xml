@@ -39,7 +39,7 @@
     <quality.config.dir>${maven.multiModuleProjectDirectory}/quality/config</quality.config.dir>
 
     <!-- Repositorio de GitHub donde se publica cupo-contracts (GitHub Packages) -->
-    <github.repository>cupo-transito/cupo-backend</github.repository>
+    <github.repository>OscarHernandezVel/Parking-Watch-Back-1</github.repository>
 
     <!-- Librerías -->
     <!-- Byte Buddy reciente: Mockito e Hibernate en JDK 21+ -->

@@ -50,8 +50,7 @@ projects:
               - key: BOOTSTRAP_ADMIN_PASSWORD
                 sync: false
         databases:
-          - type: postgres
-            name: cupo-db
+          - name: cupo-db
             databaseName: cupo
             user: cupo
             region: virginia

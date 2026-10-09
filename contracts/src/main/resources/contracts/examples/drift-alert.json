@@ -1,0 +1,7 @@
+{
+  "alertType": "BRIGHTNESS_DRIFT",
+  "observedValue": 62.0,
+  "baselineValue": 118.0,
+  "detectedAt": "2026-10-01T10:12:05-05:00",
+  "message": "El brillo promedio cayó 47 % frente a la línea base"
+}

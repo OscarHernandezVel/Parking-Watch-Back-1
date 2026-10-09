@@ -1,0 +1,18 @@
+{
+  "results": [
+    {
+      "eventId": "7b0d3f8e-2f7a-4c1e-9f61-0c1a2b3c4d01",
+      "outcome": "ACCEPTED"
+    },
+    {
+      "eventId": "7b0d3f8e-2f7a-4c1e-9f61-0c1a2b3c4d02",
+      "outcome": "ACCEPTED",
+      "reportId": "1d3a6b9c-1111-4a2b-9c3d-123456789abc"
+    },
+    {
+      "eventId": "7b0d3f8e-2f7a-4c1e-9f61-0c1a2b3c4d03",
+      "outcome": "DUPLICATE",
+      "reason": "Evento ya procesado"
+    }
+  ]
+}

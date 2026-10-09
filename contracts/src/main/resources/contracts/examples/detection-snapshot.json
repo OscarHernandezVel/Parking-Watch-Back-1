@@ -1,0 +1,33 @@
+{
+  "capturedAt": "2026-10-01T10:12:05-05:00",
+  "frameWidth": 1280,
+  "frameHeight": 720,
+  "vehicles": [
+    {
+      "trackId": 41,
+      "vehicleType": "CAR",
+      "box": {
+        "x1": 860.5,
+        "y1": 402,
+        "x2": 1010,
+        "y2": 540.2
+      },
+      "confidence": 0.94,
+      "zoneId": 1,
+      "stationarySeconds": 5.2
+    },
+    {
+      "trackId": 42,
+      "vehicleType": "MOTORCYCLE",
+      "box": {
+        "x1": 300,
+        "y1": 280,
+        "x2": 360,
+        "y2": 350
+      },
+      "confidence": 0.81,
+      "zoneId": null,
+      "stationarySeconds": 0
+    }
+  ]
+}

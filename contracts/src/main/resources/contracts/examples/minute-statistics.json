@@ -1,0 +1,21 @@
+{
+  "minute": "2026-10-01T10:12:00-05:00",
+  "zones": [
+    {
+      "zoneId": 1,
+      "vehiclesDetected": 3,
+      "occupancyPct": 41.5,
+      "avgDwellSeconds": 18,
+      "fps": 12.1,
+      "avgConfidence": 0.9
+    },
+    {
+      "zoneId": 2,
+      "vehiclesDetected": 0,
+      "occupancyPct": 0,
+      "avgDwellSeconds": null,
+      "fps": 12.1,
+      "avgConfidence": 0.9
+    }
+  ]
+}

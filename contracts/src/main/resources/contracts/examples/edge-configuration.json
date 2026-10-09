@@ -1,0 +1,55 @@
+{
+  "cameraId": "CAM-MAQ-01",
+  "configVersion": 3,
+  "frame": {
+    "width": 1280,
+    "height": 720
+  },
+  "zones": [
+    {
+      "id": 1,
+      "name": "Zona amarilla",
+      "zoneType": "YELLOW_ZONE",
+      "polygon": [
+        {
+          "x": 820,
+          "y": 420
+        },
+        {
+          "x": 1180,
+          "y": 420
+        },
+        {
+          "x": 1180,
+          "y": 560
+        },
+        {
+          "x": 820,
+          "y": 560
+        }
+      ],
+      "toleranceSeconds": 10,
+      "signaled": true
+    }
+  ],
+  "model": {
+    "version": "det-1.0-maqueta",
+    "detector": {
+      "url": "/api/v1/edge/cameras/CAM-MAQ-01/models/det-1.0-maqueta/detector",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "plateReader": null
+  },
+  "settings": {
+    "heartbeatIntervalSeconds": 5,
+    "detectionSampleIntervalMs": 200,
+    "analyticsIntervalSeconds": 5,
+    "configPollIntervalSeconds": 60,
+    "video": {
+      "width": 960,
+      "height": 540,
+      "fps": 6,
+      "jpegQuality": 0.7
+    }
+  }
+}

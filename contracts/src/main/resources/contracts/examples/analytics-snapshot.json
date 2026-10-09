@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-10-01T10:12:05-05:00",
+  "fps": 12.1,
+  "inferenceLatencyMs": 84.3,
+  "oneMinute": {
+    "vehiclesDetected": 4,
+    "avgDwellSeconds": 15.5,
+    "reportsGenerated": 1,
+    "zoneOccupancy": [
+      {
+        "zoneId": 1,
+        "occupancyPct": 41.5
+      }
+    ]
+  },
+  "fifteenMinutes": {
+    "vehiclesDetected": 22,
+    "avgDwellSeconds": 15.5,
+    "reportsGenerated": 3,
+    "zoneOccupancy": [
+      {
+        "zoneId": 1,
+        "occupancyPct": 41.5
+      }
+    ]
+  }
+}

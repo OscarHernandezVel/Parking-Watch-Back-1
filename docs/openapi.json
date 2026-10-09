@@ -1,0 +1,2125 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "Cupo - API del Backend",
+    "description" : "Reconocimiento de parqueo en zonas no autorizadas: cámaras, zonas, reportes, modelos, estadísticas y API del Edge. Tiempo real por WebSocket STOMP (ver AsyncAPI).",
+    "version" : "1.0.0-SNAPSHOT"
+  },
+  "servers" : [ {
+    "url" : "http://localhost",
+    "description" : "Generated server url"
+  } ],
+  "security" : [ {
+    "jwt" : [ ]
+  } ],
+  "paths" : {
+    "/api/v1/cameras/{cameraId}/zones" : {
+      "get" : {
+        "tags" : [ "Zonas" ],
+        "summary" : "Zonas activas de la cámara",
+        "operationId" : "list",
+        "parameters" : [ {
+          "name" : "cameraId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ZoneView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Zonas" ],
+        "summary" : "Guarda las zonas de la cámara (administrador)",
+        "operationId" : "replace",
+        "parameters" : [ {
+          "name" : "cameraId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReplaceZonesRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ZoneView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users" : {
+      "get" : {
+        "tags" : [ "Acceso" ],
+        "summary" : "Lista de usuarios (administrador)",
+        "operationId" : "users",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AuthenticatedUser"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Acceso" ],
+        "summary" : "Crea un operador o administrador (administrador)",
+        "operationId" : "createUser",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateUserRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthenticatedUser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/models" : {
+      "get" : {
+        "tags" : [ "Modelos" ],
+        "summary" : "Versiones del modelo con métricas y quality gate",
+        "operationId" : "list_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ModelVersionView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Modelos" ],
+        "summary" : "Registra una versión entrenada (RF-13.3)",
+        "operationId" : "register",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterModelRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ModelVersionView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/models/{version}/artifacts/{artifact}" : {
+      "post" : {
+        "tags" : [ "Modelos" ],
+        "summary" : "Sube el archivo ONNX del detector o del lector de placas (RF-9.1)",
+        "operationId" : "uploadArtifact",
+        "parameters" : [ {
+          "name" : "version",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "artifact",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                },
+                "required" : [ "file" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ModelVersionView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/models/{version}/activate" : {
+      "post" : {
+        "tags" : [ "Modelos" ],
+        "summary" : "Activa una versión que cumple las métricas mínimas (HU-5)",
+        "operationId" : "activate",
+        "parameters" : [ {
+          "name" : "version",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ModelVersionView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/models/rollback" : {
+      "post" : {
+        "tags" : [ "Modelos" ],
+        "summary" : "Vuelve a la versión anterior",
+        "operationId" : "rollback",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ModelVersionView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/edge/cameras/{cameraId}/evidence" : {
+      "post" : {
+        "tags" : [ "Edge" ],
+        "summary" : "Sube las tres fotos de evidencia de un reporte (multipart, RF-7.3)",
+        "operationId" : "evidence",
+        "parameters" : [ {
+          "name" : "cameraId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "entry" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  },
+                  "report" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  },
+                  "plate" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                },
+                "required" : [ "entry", "plate", "report" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EvidenceKeys"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/edge/cameras/{cameraId}/events/batch" : {
+      "post" : {
+        "tags" : [ "Edge" ],
+        "summary" : "Eventos guardados sin conexión, en orden e idempotentes (RF-8.3)",
+        "operationId" : "events",
+        "parameters" : [ {
+          "name" : "cameraId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventBatch"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventBatchResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh" : {
+      "post" : {
+        "tags" : [ "Acceso" ],
+        "summary" : "Renueva la sesión vigente antes de que venza",
+        "operationId" : "refresh",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/mfa/setup" : {
+      "post" : {
+        "tags" : [ "Acceso" ],
+        "summary" : "Genera el secreto del segundo factor del administrador (código QR)",
+        "operationId" : "setupMfa",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MfaEnrollment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/mfa/activate" : {
+      "post" : {
+        "tags" : [ "Acceso" ],
+        "summary" : "Activa el segundo factor con un código válido y emite una sesión nueva",
+        "operationId" : "activateMfa",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MfaCode"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login" : {
+      "post" : {
+        "tags" : [ "Acceso" ],
+        "summary" : "Inicio de sesión de funcionarios (JWT de corta duración)",
+        "operationId" : "login",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/alerts/{id}/acknowledge" : {
+      "post" : {
+        "tags" : [ "Aprendizaje continuo" ],
+        "summary" : "Marca una alerta como atendida",
+        "operationId" : "acknowledge",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{id}" : {
+      "get" : {
+        "tags" : [ "Reportes" ],
+        "summary" : "Detalle con fotos y recorte de la placa (RF-3.2)",
+        "operationId" : "detail",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "Reportes" ],
+        "summary" : "Confirma o descarta el reporte con motivo (RF-3.3)",
+        "operationId" : "review",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReviewRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/statistics" : {
+      "get" : {
+        "tags" : [ "Estadísticas" ],
+        "summary" : "Agregados por minuto, hora o día (horas con más parqueo indebido)",
+        "operationId" : "query",
+        "parameters" : [ {
+          "name" : "from",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "name" : "zoneId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "granularity",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "HOUR",
+            "enum" : [ "MINUTE", "HOUR", "DAY" ]
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StatisticsPoint"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/retraining/status" : {
+      "get" : {
+        "tags" : [ "Aprendizaje continuo" ],
+        "summary" : "Muestras acumuladas y necesidad de reentrenar (RF-14.3)",
+        "operationId" : "retrainingStatus",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RetrainingStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports" : {
+      "get" : {
+        "tags" : [ "Reportes" ],
+        "summary" : "Reportes con filtros por fecha, cámara, zona y estado (RF-3.1)",
+        "operationId" : "list_2",
+        "parameters" : [ {
+          "name" : "from",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "name" : "cameraId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "zoneId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "NEW", "CONFIRMED", "DISMISSED" ]
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 50,
+            "maximum" : 200,
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagedModelReportView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{id}/evidence/{kind}" : {
+      "get" : {
+        "tags" : [ "Reportes" ],
+        "summary" : "Foto de evidencia: entry, report o plate (RF-3.2)",
+        "operationId" : "evidence_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "kind",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/jpeg" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/export" : {
+      "get" : {
+        "tags" : [ "Reportes" ],
+        "summary" : "Exporta el listado filtrado a PDF o Excel (RF-3.4)",
+        "operationId" : "export",
+        "parameters" : [ {
+          "name" : "format",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PDF", "XLSX" ]
+          }
+        }, {
+          "name" : "from",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "name" : "cameraId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "zoneId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "NEW", "CONFIRMED", "DISMISSED" ]
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/edge/cameras/{cameraId}/models/{version}/{artifact}" : {
+      "get" : {
+        "tags" : [ "Edge" ],
+        "summary" : "Descarga un archivo ONNX del modelo (RF-15.3)",
+        "operationId" : "modelArtifact",
+        "parameters" : [ {
+          "name" : "cameraId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "version",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "artifact",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/edge/cameras/{cameraId}/model" : {
+      "get" : {
+        "tags" : [ "Edge" ],
+        "summary" : "Modelo activo con la huella SHA-256 de cada archivo (RF-9.1)",
+        "operationId" : "activeModel",
+        "parameters" : [ {
+          "name" : "cameraId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ActiveModel"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/edge/cameras/{cameraId}/configuration" : {
+      "get" : {
+        "tags" : [ "Edge" ],
+        "summary" : "Configuración de zonas y modelo vigente, con ETag (RF-6.2)",
+        "operationId" : "configuration",
+        "parameters" : [ {
+          "name" : "cameraId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "If-None-Match",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EdgeConfiguration"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras" : {
+      "get" : {
+        "tags" : [ "Cámaras" ],
+        "summary" : "Cámaras con ubicación, estado y dirección del video (PB-01)",
+        "operationId" : "list_3",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CameraView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}" : {
+      "get" : {
+        "tags" : [ "Cámaras" ],
+        "summary" : "Detalle de una cámara",
+        "operationId" : "get",
+        "parameters" : [ {
+          "name" : "cameraId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CameraView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/{cameraId}/live" : {
+      "get" : {
+        "tags" : [ "Cámaras" ],
+        "summary" : "Detecciones e indicadores en vivo (PB-02, PB-12)",
+        "operationId" : "live",
+        "parameters" : [ {
+          "name" : "cameraId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LiveView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/alerts" : {
+      "get" : {
+        "tags" : [ "Aprendizaje continuo" ],
+        "summary" : "Alertas de deriva y de reentrenamiento",
+        "operationId" : "alerts",
+        "parameters" : [ {
+          "name" : "openOnly",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : true
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AlertView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "ImagePoint" : {
+        "type" : "object",
+        "properties" : {
+          "x" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "y" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }
+      },
+      "ReplaceZonesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "zones" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ZoneDraft"
+            },
+            "maxItems" : 20,
+            "minItems" : 0
+          }
+        },
+        "required" : [ "zones" ]
+      },
+      "ZoneDraft" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 50,
+            "minLength" : 0
+          },
+          "zoneType" : {
+            "type" : "string",
+            "enum" : [ "SIDEWALK", "CORNER", "GARAGE_ENTRANCE", "YELLOW_ZONE", "TRAFFIC_LANE" ]
+          },
+          "polygon" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ImagePoint"
+            },
+            "maxItems" : 64,
+            "minItems" : 3
+          },
+          "toleranceSeconds" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 3600,
+            "minimum" : 1
+          },
+          "signaled" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "name", "polygon", "zoneType" ]
+      },
+      "ZoneView" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "cameraId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "zoneType" : {
+            "type" : "string",
+            "enum" : [ "SIDEWALK", "CORNER", "GARAGE_ENTRANCE", "YELLOW_ZONE", "TRAFFIC_LANE" ]
+          },
+          "polygon" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ImagePoint"
+            }
+          },
+          "toleranceSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "signaled" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "CreateUserRequest" : {
+        "type" : "object",
+        "properties" : {
+          "username" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "^[A-Za-z0-9._-]{3,80}$"
+          },
+          "fullName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 3
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 12
+          },
+          "role" : {
+            "type" : "string",
+            "enum" : [ "OPERATOR", "ADMINISTRATOR" ]
+          }
+        },
+        "required" : [ "fullName", "password", "role", "username" ]
+      },
+      "AuthenticatedUser" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "fullName" : {
+            "type" : "string"
+          },
+          "role" : {
+            "type" : "string",
+            "enum" : [ "OPERATOR", "ADMINISTRATOR" ]
+          }
+        }
+      },
+      "RegisterModelRequest" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "string",
+            "pattern" : "^[A-Za-z0-9._-]{1,20}$"
+          },
+          "trainedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "map50" : {
+            "type" : "number",
+            "format" : "double",
+            "maximum" : 1.0,
+            "minimum" : 0.0
+          },
+          "precision" : {
+            "type" : "number",
+            "format" : "double",
+            "maximum" : 1.0,
+            "minimum" : 0.0
+          },
+          "recall" : {
+            "type" : "number",
+            "format" : "double",
+            "maximum" : 1.0,
+            "minimum" : 0.0
+          },
+          "plateAccuracy" : {
+            "type" : "number",
+            "format" : "double",
+            "maximum" : 1.0,
+            "minimum" : 0.0
+          },
+          "detectorObjectKey" : {
+            "type" : "string",
+            "pattern" : "^models/.+"
+          },
+          "detectorSha256" : {
+            "type" : "string",
+            "pattern" : "^[a-f0-9]{64}$"
+          },
+          "plateReaderObjectKey" : {
+            "type" : "string",
+            "pattern" : "^models/.+"
+          },
+          "plateReaderSha256" : {
+            "type" : "string",
+            "pattern" : "^[a-f0-9]{64}$"
+          }
+        },
+        "required" : [ "trainedAt", "version" ]
+      },
+      "ModelMetrics" : {
+        "type" : "object",
+        "properties" : {
+          "map50" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "precision" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "recall" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "plateAccuracy" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }
+      },
+      "ModelVersionView" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "string"
+          },
+          "trainedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "metrics" : {
+            "$ref" : "#/components/schemas/ModelMetrics"
+          },
+          "verified" : {
+            "type" : "boolean"
+          },
+          "active" : {
+            "type" : "boolean"
+          },
+          "detectorSha256" : {
+            "type" : "string"
+          },
+          "plateReaderSha256" : {
+            "type" : "string"
+          },
+          "qualityGate" : {
+            "$ref" : "#/components/schemas/Result"
+          }
+        }
+      },
+      "Result" : {
+        "type" : "object",
+        "properties" : {
+          "passed" : {
+            "type" : "boolean"
+          },
+          "failures" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "EvidenceKeys" : {
+        "type" : "object",
+        "properties" : {
+          "entryPhotoKey" : {
+            "type" : "string",
+            "maxLength" : 512,
+            "minLength" : 0
+          },
+          "reportPhotoKey" : {
+            "type" : "string",
+            "maxLength" : 512,
+            "minLength" : 0
+          },
+          "platePhotoKey" : {
+            "type" : "string",
+            "maxLength" : 512,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "entryPhotoKey", "platePhotoKey", "reportPhotoKey" ]
+      },
+      "EventBatch" : {
+        "type" : "object",
+        "properties" : {
+          "events" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ParkingEventMessage"
+            },
+            "maxItems" : 50,
+            "minItems" : 1
+          }
+        },
+        "required" : [ "events" ]
+      },
+      "ParkingEventMessage" : {
+        "type" : "object",
+        "properties" : {
+          "eventId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "eventType" : {
+            "type" : "string",
+            "enum" : [ "ZONE_ENTERED", "TOLERANCE_EXCEEDED", "ZONE_EXITED" ]
+          },
+          "zoneId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "trackId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "vehicleType" : {
+            "type" : "string",
+            "enum" : [ "CAR", "MOTORCYCLE", "BUS", "TRUCK" ]
+          },
+          "detectionConfidence" : {
+            "type" : "number",
+            "format" : "double",
+            "maximum" : 1.0,
+            "minimum" : 0.0
+          },
+          "modelVersion" : {
+            "type" : "string",
+            "maxLength" : 20,
+            "minLength" : 0
+          },
+          "enteredAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "occurredAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "dwellSeconds" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "plate" : {
+            "$ref" : "#/components/schemas/PlateReading"
+          },
+          "evidence" : {
+            "$ref" : "#/components/schemas/EvidenceKeys"
+          }
+        },
+        "required" : [ "enteredAt", "eventId", "eventType", "modelVersion", "occurredAt", "vehicleType" ]
+      },
+      "PlateReading" : {
+        "type" : "object",
+        "properties" : {
+          "value" : {
+            "type" : "string",
+            "maxLength" : 7,
+            "minLength" : 0
+          },
+          "confidence" : {
+            "type" : "number",
+            "format" : "double",
+            "maximum" : 1.0,
+            "minimum" : 0.0
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "READ", "PENDING_CONFIRMATION", "NOT_READ" ]
+          }
+        },
+        "required" : [ "status" ]
+      },
+      "EventBatchResult" : {
+        "type" : "object",
+        "properties" : {
+          "results" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EventResult"
+            }
+          }
+        }
+      },
+      "EventResult" : {
+        "type" : "object",
+        "properties" : {
+          "eventId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "outcome" : {
+            "type" : "string",
+            "enum" : [ "ACCEPTED", "DUPLICATE", "REJECTED" ]
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "reportId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }
+      },
+      "LoginResponse" : {
+        "type" : "object",
+        "properties" : {
+          "accessToken" : {
+            "type" : "string"
+          },
+          "tokenType" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "user" : {
+            "$ref" : "#/components/schemas/AuthenticatedUser"
+          },
+          "mfaSetupRequired" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "MfaEnrollment" : {
+        "type" : "object",
+        "properties" : {
+          "secret" : {
+            "type" : "string"
+          },
+          "otpauthUri" : {
+            "type" : "string"
+          }
+        }
+      },
+      "MfaCode" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "^[0-9]{6}$"
+          }
+        },
+        "required" : [ "code" ]
+      },
+      "LoginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "username" : {
+            "type" : "string",
+            "maxLength" : 80,
+            "minLength" : 0
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "otp" : {
+            "type" : "string",
+            "pattern" : "^[0-9]{6}$"
+          }
+        },
+        "required" : [ "password", "username" ]
+      },
+      "ReviewRequest" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "NEW", "CONFIRMED", "DISMISSED" ]
+          },
+          "dismissalReason" : {
+            "type" : "string",
+            "enum" : [ "FALSE_POSITIVE", "MOMENTARY_STOP", "EMERGENCY_VEHICLE", "PLATE_MISREAD" ]
+          },
+          "correctedPlate" : {
+            "type" : "string",
+            "maxLength" : 10,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "status" ]
+      },
+      "ReportView" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "cameraId" : {
+            "type" : "string"
+          },
+          "zoneId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "trackId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "vehicleType" : {
+            "type" : "string",
+            "enum" : [ "CAR", "MOTORCYCLE", "BUS", "TRUCK" ]
+          },
+          "plate" : {
+            "type" : "string"
+          },
+          "plateConfidence" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "plateStatus" : {
+            "type" : "string",
+            "enum" : [ "READ", "PENDING_CONFIRMATION", "NOT_READ" ]
+          },
+          "detectionConfidence" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "enteredAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "generatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "exitedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "totalSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "NEW", "CONFIRMED", "DISMISSED" ]
+          },
+          "dismissalReason" : {
+            "type" : "string",
+            "enum" : [ "FALSE_POSITIVE", "MOMENTARY_STOP", "EMERGENCY_VEHICLE", "PLATE_MISREAD" ]
+          },
+          "modelVersion" : {
+            "type" : "string"
+          },
+          "reviewedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "reviewedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "StatisticsPoint" : {
+        "type" : "object",
+        "properties" : {
+          "bucket" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "zoneId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "vehiclesDetected" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "occupancyPct" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "avgDwellSeconds" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "fps" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "avgConfidence" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }
+      },
+      "RetrainingStatus" : {
+        "type" : "object",
+        "properties" : {
+          "pendingSamples" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "threshold" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "openDriftAlerts" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "retrainingRequired" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "PageMetadata" : {
+        "type" : "object",
+        "properties" : {
+          "size" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "number" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "PagedModelReportView" : {
+        "type" : "object",
+        "properties" : {
+          "content" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReportView"
+            }
+          },
+          "page" : {
+            "$ref" : "#/components/schemas/PageMetadata"
+          }
+        }
+      },
+      "EvidenceUrls" : {
+        "type" : "object",
+        "properties" : {
+          "entry" : {
+            "type" : "string"
+          },
+          "report" : {
+            "type" : "string"
+          },
+          "plate" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ReportDetail" : {
+        "type" : "object",
+        "properties" : {
+          "report" : {
+            "$ref" : "#/components/schemas/ReportView"
+          },
+          "zone" : {
+            "$ref" : "#/components/schemas/ZoneSummary"
+          },
+          "evidenceUrls" : {
+            "$ref" : "#/components/schemas/EvidenceUrls"
+          }
+        }
+      },
+      "ZoneSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "zoneType" : {
+            "type" : "string",
+            "enum" : [ "SIDEWALK", "CORNER", "GARAGE_ENTRANCE", "YELLOW_ZONE", "TRAFFIC_LANE" ]
+          }
+        }
+      },
+      "ActiveModel" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "string"
+          },
+          "detector" : {
+            "$ref" : "#/components/schemas/ModelArtifact"
+          },
+          "plateReader" : {
+            "$ref" : "#/components/schemas/ModelArtifact"
+          }
+        }
+      },
+      "ModelArtifact" : {
+        "type" : "object",
+        "properties" : {
+          "url" : {
+            "type" : "string"
+          },
+          "sha256" : {
+            "type" : "string"
+          }
+        }
+      },
+      "EdgeConfiguration" : {
+        "type" : "object",
+        "properties" : {
+          "cameraId" : {
+            "type" : "string"
+          },
+          "configVersion" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "frame" : {
+            "$ref" : "#/components/schemas/FrameSize"
+          },
+          "zones" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ZoneDefinition"
+            }
+          },
+          "model" : {
+            "$ref" : "#/components/schemas/ActiveModel"
+          },
+          "settings" : {
+            "$ref" : "#/components/schemas/Settings"
+          }
+        }
+      },
+      "FrameSize" : {
+        "type" : "object",
+        "properties" : {
+          "width" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "height" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "LiveVideo" : {
+        "type" : "object",
+        "properties" : {
+          "width" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "height" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fps" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "jpegQuality" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }
+      },
+      "Point" : {
+        "type" : "object",
+        "properties" : {
+          "x" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "y" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }
+      },
+      "Settings" : {
+        "type" : "object",
+        "properties" : {
+          "heartbeatIntervalSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "detectionSampleIntervalMs" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "analyticsIntervalSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "configPollIntervalSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "video" : {
+            "$ref" : "#/components/schemas/LiveVideo"
+          }
+        }
+      },
+      "ZoneDefinition" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "zoneType" : {
+            "type" : "string",
+            "enum" : [ "SIDEWALK", "CORNER", "GARAGE_ENTRANCE", "YELLOW_ZONE", "TRAFFIC_LANE" ]
+          },
+          "polygon" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Point"
+            }
+          },
+          "toleranceSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "signaled" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "CameraView" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "address" : {
+            "type" : "string"
+          },
+          "location" : {
+            "$ref" : "#/components/schemas/GeoPoint"
+          },
+          "coverageArea" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/GeoPoint"
+            }
+          },
+          "displayStatus" : {
+            "type" : "string",
+            "enum" : [ "ONLINE", "OFFLINE", "ACTIVE_REPORT" ]
+          },
+          "lastSignalAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "frame" : {
+            "$ref" : "#/components/schemas/FrameSize"
+          }
+        }
+      },
+      "GeoPoint" : {
+        "type" : "object",
+        "properties" : {
+          "latitude" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "longitude" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }
+      },
+      "AnalyticsSnapshot" : {
+        "type" : "object",
+        "properties" : {
+          "generatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fps" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "inferenceLatencyMs" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "oneMinute" : {
+            "$ref" : "#/components/schemas/WindowMetrics"
+          },
+          "fifteenMinutes" : {
+            "$ref" : "#/components/schemas/WindowMetrics"
+          }
+        },
+        "required" : [ "fifteenMinutes", "generatedAt", "oneMinute" ]
+      },
+      "Box" : {
+        "type" : "object",
+        "properties" : {
+          "x1" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "y1" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "x2" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "y2" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }
+      },
+      "DetectionSnapshot" : {
+        "type" : "object",
+        "properties" : {
+          "capturedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "frameWidth" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "frameHeight" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "vehicles" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TrackedVehicle"
+            },
+            "maxItems" : 100,
+            "minItems" : 0
+          }
+        },
+        "required" : [ "capturedAt", "vehicles" ]
+      },
+      "LiveView" : {
+        "type" : "object",
+        "properties" : {
+          "cameraId" : {
+            "type" : "string"
+          },
+          "connected" : {
+            "type" : "boolean"
+          },
+          "lastSignalAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "detections" : {
+            "$ref" : "#/components/schemas/DetectionSnapshot"
+          },
+          "detectionsAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "analytics" : {
+            "$ref" : "#/components/schemas/AnalyticsSnapshot"
+          },
+          "analyticsAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "TrackedVehicle" : {
+        "type" : "object",
+        "properties" : {
+          "trackId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "vehicleType" : {
+            "type" : "string",
+            "enum" : [ "CAR", "MOTORCYCLE", "BUS", "TRUCK" ]
+          },
+          "box" : {
+            "$ref" : "#/components/schemas/Box"
+          },
+          "confidence" : {
+            "type" : "number",
+            "format" : "double",
+            "maximum" : 1.0,
+            "minimum" : 0.0
+          },
+          "zoneId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "stationarySeconds" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        },
+        "required" : [ "box", "vehicleType" ]
+      },
+      "WindowMetrics" : {
+        "type" : "object",
+        "properties" : {
+          "vehiclesDetected" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "avgDwellSeconds" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "reportsGenerated" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "zoneOccupancy" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ZoneOccupancy"
+            }
+          }
+        },
+        "required" : [ "zoneOccupancy" ]
+      },
+      "ZoneOccupancy" : {
+        "type" : "object",
+        "properties" : {
+          "zoneId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "occupancyPct" : {
+            "type" : "number",
+            "format" : "double",
+            "maximum" : 100.0,
+            "minimum" : 0.0
+          }
+        }
+      },
+      "AlertView" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "alertType" : {
+            "type" : "string",
+            "enum" : [ "CONFIDENCE_DRIFT", "BRIGHTNESS_DRIFT", "DISMISSAL_RATE_DRIFT", "RETRAINING_REQUIRED", "UNVERIFIED_MODEL" ]
+          },
+          "cameraId" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "observedValue" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "baselineValue" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "acknowledgedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      }
+    },
+    "securitySchemes" : {
+      "jwt" : {
+        "type" : "http",
+        "scheme" : "bearer",
+        "bearerFormat" : "JWT"
+      },
+      "deviceToken" : {
+        "type" : "http",
+        "description" : "Token del dispositivo Edge (pwd_...)",
+        "scheme" : "bearer"
+      }
+    }
+  }
+}

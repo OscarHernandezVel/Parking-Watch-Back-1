@@ -1,0 +1,224 @@
+# Contrato de los mensajes en tiempo real (RF-8.1, RF-8.2): WebSocket con STOMP sobre WSS.
+# El Edge usa los objetos Java del paquete cupo-contracts (EdgeStomp, EventBatch, ...); el
+# Frontend usa @stomp/stompjs con los tópicos de la sección "channels".
+asyncapi: 3.0.0
+info:
+  title: Cupo - Canal en tiempo real
+  version: 1.0.0
+  description: |
+    Dos endpoints WebSocket del Backend en Render, ambos con STOMP 1.2 y latidos cada 10 s:
+    - `/ws/edge`: el Edge (Raspberry Pi 5) se autentica con su token de dispositivo en el
+      encabezado `Authorization: Bearer pwd_...` de la trama CONNECT.
+    - `/ws`: los navegadores se autentican con su JWT en `Authorization: Bearer ...` del CONNECT.
+    Render solo publica HTTP/HTTPS, por eso no se usan MQTT ni WebRTC.
+servers:
+  production:
+    host: api.cupo-transito.co
+    protocol: wss
+    description: Backend en Render (región Virginia)
+  local:
+    host: localhost:8080
+    protocol: ws
+defaultContentType: application/json
+
+channels:
+  edgeEvents:
+    address: /app/edge/events
+    messages:
+      eventBatch: { $ref: '#/components/messages/EventBatch' }
+  edgeDetections:
+    address: /app/edge/detections
+    messages:
+      detections: { $ref: '#/components/messages/DetectionSnapshot' }
+  edgeVideo:
+    address: /app/edge/video
+    messages:
+      frame: { $ref: '#/components/messages/VideoFrame' }
+  edgeAnalytics:
+    address: /app/edge/analytics
+    messages:
+      analytics: { $ref: '#/components/messages/AnalyticsSnapshot' }
+  edgeHeartbeat:
+    address: /app/edge/heartbeat
+    messages:
+      heartbeat: { $ref: '#/components/messages/Heartbeat' }
+  edgeStatistics:
+    address: /app/edge/statistics
+    messages:
+      statistics: { $ref: '#/components/messages/MinuteStatistics' }
+  edgeAlerts:
+    address: /app/edge/alerts
+    messages:
+      alert: { $ref: '#/components/messages/DriftAlert' }
+  edgeConfig:
+    address: /user/queue/config
+    messages:
+      configuration: { $ref: '#/components/messages/EdgeConfiguration' }
+  edgeEventResults:
+    address: /user/queue/event-results
+    messages:
+      results: { $ref: '#/components/messages/EventBatchResult' }
+  cameraVideo:
+    address: /topic/cameras/{cameraId}/video
+    parameters:
+      cameraId: { description: Código de la cámara, p. ej. CAM-MAQ-01 }
+    messages:
+      frame: { $ref: '#/components/messages/VideoFrame' }
+  cameraDetections:
+    address: /topic/cameras/{cameraId}/detections
+    parameters:
+      cameraId: { description: Código de la cámara }
+    messages:
+      detections: { $ref: '#/components/messages/DetectionSnapshot' }
+  cameraAnalytics:
+    address: /topic/cameras/{cameraId}/analytics
+    parameters:
+      cameraId: { description: Código de la cámara }
+    messages:
+      analytics: { $ref: '#/components/messages/AnalyticsSnapshot' }
+  cameraEvents:
+    address: /topic/cameras/{cameraId}/events
+    parameters:
+      cameraId: { description: Código de la cámara }
+    messages:
+      event: { $ref: '#/components/messages/RealtimeEvent' }
+  cameras:
+    address: /topic/cameras
+    messages:
+      statusChanged: { $ref: '#/components/messages/RealtimeEvent' }
+  reports:
+    address: /topic/reports
+    messages:
+      reportEvent: { $ref: '#/components/messages/RealtimeEvent' }
+  alerts:
+    address: /topic/alerts
+    description: Solo administradores.
+    messages:
+      alertEvent: { $ref: '#/components/messages/RealtimeEvent' }
+
+operations:
+  sendEvents: { action: send, channel: { $ref: '#/channels/edgeEvents' }, summary: El Edge informa entrada, tolerancia superada y salida (menos de 1 s) }
+  sendDetections: { action: send, channel: { $ref: '#/channels/edgeDetections' }, summary: Detecciones cada 200 ms }
+  sendVideo: { action: send, channel: { $ref: '#/channels/edgeVideo' }, summary: JPEG de 960 x 540 a 5-8 fps }
+  sendAnalytics: { action: send, channel: { $ref: '#/channels/edgeAnalytics' }, summary: Indicadores cada 5 s }
+  sendHeartbeat: { action: send, channel: { $ref: '#/channels/edgeHeartbeat' }, summary: Señal de vida cada 5 s (sin conexión a los 30 s) }
+  sendStatistics: { action: send, channel: { $ref: '#/channels/edgeStatistics' }, summary: Resumen por minuto }
+  sendAlerts: { action: send, channel: { $ref: '#/channels/edgeAlerts' }, summary: Alerta de deriva }
+  receiveConfig: { action: receive, channel: { $ref: '#/channels/edgeConfig' }, summary: Cambios de zonas y de modelo, sin reiniciar }
+  receiveEventResults: { action: receive, channel: { $ref: '#/channels/edgeEventResults' }, summary: Resultado por evento para limpiar el búfer local }
+  watchVideo: { action: receive, channel: { $ref: '#/channels/cameraVideo' }, summary: Solo el fotograma más reciente si el navegador va retrasado }
+  watchDetections: { action: receive, channel: { $ref: '#/channels/cameraDetections' } }
+  watchAnalytics: { action: receive, channel: { $ref: '#/channels/cameraAnalytics' } }
+  watchCameraEvents: { action: receive, channel: { $ref: '#/channels/cameraEvents' } }
+  watchCameras: { action: receive, channel: { $ref: '#/channels/cameras' } }
+  watchReports: { action: receive, channel: { $ref: '#/channels/reports' }, summary: Aviso con sonido de reporte nuevo }
+  watchAlerts: { action: receive, channel: { $ref: '#/channels/alerts' } }
+
+components:
+  messages:
+    VideoFrame:
+      contentType: application/octet-stream
+      summary: Fotograma JPEG (trama STOMP binaria)
+      payload: { type: string, format: binary }
+    EventBatch:
+      payload:
+        type: object
+        required: [events]
+        properties:
+          events: { type: array, maxItems: 50, items: { $ref: '#/components/schemas/ParkingEvent' } }
+    EventBatchResult:
+      payload:
+        type: object
+        properties:
+          results:
+            type: array
+            items:
+              type: object
+              properties:
+                eventId: { type: string, format: uuid }
+                outcome: { type: string, enum: [ACCEPTED, DUPLICATE, REJECTED] }
+                reason: { type: string }
+                reportId: { type: string, format: uuid }
+    DetectionSnapshot:
+      payload: { $ref: '#/components/schemas/DetectionSnapshot' }
+    AnalyticsSnapshot:
+      payload:
+        type: object
+        description: Ver contracts/examples/analytics-snapshot.json (ventanas de 1 y 15 minutos).
+    Heartbeat:
+      payload:
+        type: object
+        required: [sentAt, fps, modelVersion, uptimeSeconds, agentVersion]
+        properties:
+          sentAt: { type: string, format: date-time }
+          fps: { type: number }
+          modelVersion: { type: string }
+          uptimeSeconds: { type: integer }
+          agentVersion: { type: string }
+    MinuteStatistics:
+      payload:
+        type: object
+        description: Ver contracts/examples/minute-statistics.json.
+    DriftAlert:
+      payload:
+        type: object
+        description: Ver contracts/examples/drift-alert.json.
+    EdgeConfiguration:
+      payload:
+        type: object
+        description: Ver contracts/examples/edge-configuration.json (zonas, modelo activo y ajustes).
+    RealtimeEvent:
+      payload:
+        type: object
+        required: [type, at, payload]
+        properties:
+          type:
+            type: string
+            enum: [report.created, report.updated, vehicle.entered-zone, vehicle.exited-zone, camera.status-changed, alert.created]
+          at: { type: string, format: date-time }
+          payload: { type: object }
+  schemas:
+    ParkingEvent:
+      type: object
+      required: [eventId, eventType, zoneId, trackId, vehicleType, detectionConfidence, modelVersion, enteredAt, occurredAt, dwellSeconds]
+      properties:
+        eventId: { type: string, format: uuid, description: Evita duplicados al reenviar el búfer }
+        eventType: { type: string, enum: [ZONE_ENTERED, TOLERANCE_EXCEEDED, ZONE_EXITED] }
+        zoneId: { type: integer }
+        trackId: { type: integer }
+        vehicleType: { type: string, enum: [CAR, MOTORCYCLE, BUS, TRUCK] }
+        detectionConfidence: { type: number }
+        modelVersion: { type: string }
+        enteredAt: { type: string, format: date-time }
+        occurredAt: { type: string, format: date-time }
+        dwellSeconds: { type: number }
+        plate:
+          type: object
+          properties:
+            value: { type: string, pattern: '^[A-Z]{3}[0-9]{2}[0-9A-Z]$' }
+            confidence: { type: number }
+            status: { type: string, enum: [READ, PENDING_CONFIRMATION, NOT_READ] }
+        evidence:
+          type: object
+          description: Rutas devueltas por POST /api/v1/edge/cameras/{cameraId}/evidence
+          properties:
+            entryPhotoKey: { type: string }
+            reportPhotoKey: { type: string }
+            platePhotoKey: { type: string }
+    DetectionSnapshot:
+      type: object
+      properties:
+        capturedAt: { type: string, format: date-time }
+        frameWidth: { type: integer }
+        frameHeight: { type: integer }
+        vehicles:
+          type: array
+          items:
+            type: object
+            properties:
+              trackId: { type: integer }
+              vehicleType: { type: string }
+              box: { type: object, properties: { x1: { type: number }, y1: { type: number }, x2: { type: number }, y2: { type: number } } }
+              confidence: { type: number }
+              zoneId: { type: integer, nullable: true }
+              stationarySeconds: { type: number }

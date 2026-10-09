@@ -218,6 +218,11 @@
           <configuration>
             <failBuildOnCVSS>9</failBuildOnCVSS>
             <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+            <!-- La API de la NVD limita peticiones y falla a ratos: más espera y reintentos -->
+            <nvdApiDelay>8000</nvdApiDelay>
+            <nvdMaxRetryCount>15</nvdMaxRetryCount>
+            <nvdApiResultsPerPage>1000</nvdApiResultsPerPage>
+            <nvdValidForHours>24</nvdValidForHours>
             <suppressionFiles>
               <suppressionFile>${quality.config.dir}/dependency-check-suppressions.xml</suppressionFile>
             </suppressionFiles>

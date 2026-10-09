@@ -1,4 +1,3 @@
-# Contrato de los mensajes en tiempo real (RF-8.1, RF-8.2): WebSocket con STOMP sobre WSS.
 # El Edge usa los objetos Java del paquete cupo-contracts (EdgeStomp, EventBatch, ...); el
 # Frontend usa @stomp/stompjs con los tópicos de la sección "channels".
 asyncapi: 3.0.0
@@ -61,7 +60,7 @@ channels:
   cameraVideo:
     address: /topic/cameras/{cameraId}/video
     parameters:
-      cameraId: { description: Código de la cámara, p. ej. CAM-MAQ-01 }
+      cameraId: { description: 'Código de la cámara, p. ej. CAM-MAQ-01' }
     messages:
       frame: { $ref: '#/components/messages/VideoFrame' }
   cameraDetections:
@@ -97,14 +96,14 @@ channels:
       alertEvent: { $ref: '#/components/messages/RealtimeEvent' }
 
 operations:
-  sendEvents: { action: send, channel: { $ref: '#/channels/edgeEvents' }, summary: El Edge informa entrada, tolerancia superada y salida (menos de 1 s) }
+  sendEvents: { action: send, channel: { $ref: '#/channels/edgeEvents' }, summary: 'El Edge informa entrada, tolerancia superada y salida (menos de 1 s)' }
   sendDetections: { action: send, channel: { $ref: '#/channels/edgeDetections' }, summary: Detecciones cada 200 ms }
   sendVideo: { action: send, channel: { $ref: '#/channels/edgeVideo' }, summary: JPEG de 960 x 540 a 5-8 fps }
   sendAnalytics: { action: send, channel: { $ref: '#/channels/edgeAnalytics' }, summary: Indicadores cada 5 s }
   sendHeartbeat: { action: send, channel: { $ref: '#/channels/edgeHeartbeat' }, summary: Señal de vida cada 5 s (sin conexión a los 30 s) }
   sendStatistics: { action: send, channel: { $ref: '#/channels/edgeStatistics' }, summary: Resumen por minuto }
   sendAlerts: { action: send, channel: { $ref: '#/channels/edgeAlerts' }, summary: Alerta de deriva }
-  receiveConfig: { action: receive, channel: { $ref: '#/channels/edgeConfig' }, summary: Cambios de zonas y de modelo, sin reiniciar }
+   receiveConfig: { action: receive, channel: { $ref: '#/channels/edgeConfig' }, summary: 'Cambios de zonas y de modelo, sin reiniciar' }
   receiveEventResults: { action: receive, channel: { $ref: '#/channels/edgeEventResults' }, summary: Resultado por evento para limpiar el búfer local }
   watchVideo: { action: receive, channel: { $ref: '#/channels/cameraVideo' }, summary: Solo el fotograma más reciente si el navegador va retrasado }
   watchDetections: { action: receive, channel: { $ref: '#/channels/cameraDetections' } }
